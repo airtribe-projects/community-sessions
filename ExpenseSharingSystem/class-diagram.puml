@@ -1,0 +1,266 @@
+@startuml Expense Sharing System
+
+!define ENTITY_COLOR #E8F5E9
+!define STRATEGY_COLOR #FFF3E0
+!define SERVICE_COLOR #E3F2FD
+!define ENUM_COLOR #F3E5F5
+
+' Title
+title Expense Sharing System - Class Diagram
+
+' Legend
+legend top right
+  |= Color |= Layer |
+  | <back:#E8F5E9>   </back> | Entity Layer |
+  | <back:#FFF3E0>   </back> | Strategy Layer |
+  | <back:#E3F2FD>   </back> | Service Layer |
+  | <back:#F3E5F5>   </back> | Enums |
+endlegend
+
+'================================
+' ENTITY LAYER
+'================================
+
+package "Entity Layer" {
+  
+  class User <<Entity>> ENTITY_COLOR {
+    - id: String
+    - name: String
+    - email: String
+    - phone: String
+    --
+    + User(name, email, phone)
+    + getId(): String
+    + getName(): String
+    + getEmail(): String
+    + getPhone(): String
+    + equals(Object): boolean
+    + hashCode(): int
+  }
+  
+  class Expense <<Entity>> ENTITY_COLOR {
+    - id: String
+    - description: String
+    - totalAmount: Double
+    - paidBy: User
+    - splits: List<Split>
+    - splitType: SplitType
+    - group: Group
+    - timestamp: LocalDateTime
+    --
+    + Expense(description, amount, paidBy, splits, splitType, group)
+    + getId(): String
+    + getDescription(): String
+    + getTotalAmount(): Double
+    + getPaidBy(): User
+    + getSplits(): List<Split>
+    + getSplitType(): SplitType
+    + getGroup(): Group
+    + getTimestamp(): LocalDateTime
+    + isValid(): boolean
+    + involves(User): boolean
+  }
+  
+  class Split <<Entity>> ENTITY_COLOR {
+    - user: User
+    - amount: Double
+    - percentage: Double
+    --
+    + Split(user, amount)
+    + Split(user, amount, percentage)
+    + getUser(): User
+    + getAmount(): Double
+    + getPercentage(): Double
+    + setAmount(Double): void
+  }
+  
+  class Group <<Entity>> ENTITY_COLOR {
+    - id: String
+    - name: String
+    - members: List<User>
+    - expenses: List<Expense>
+    - createdAt: LocalDateTime
+    --
+    + Group(name, members)
+    + getId(): String
+    + getName(): String
+    + getMembers(): List<User>
+    + getExpenses(): List<Expense>
+    + getCreatedAt(): LocalDateTime
+    + addMember(User): void
+    + removeMember(User): void
+    + addExpense(Expense): void
+    + isMember(User): boolean
+  }
+  
+  class Balance <<Entity>> ENTITY_COLOR {
+    - fromUser: User
+    - toUser: User
+    - amount: Double
+    --
+    + Balance(fromUser, toUser, amount)
+    + getFromUser(): User
+    + getToUser(): User
+    + getAmount(): Double
+    + setAmount(Double): void
+    + toString(): String
+  }
+  
+  enum SplitType <<Enumeration>> ENUM_COLOR {
+    EQUAL
+    EXACT
+    PERCENTAGE
+  }
+}
+
+'================================
+' STRATEGY LAYER
+'================================
+
+package "Strategy Layer" {
+  
+  interface ExpenseSplitStrategy <<Interface>> STRATEGY_COLOR {
+    + {abstract} calculateSplits(Expense, List<User>, Map<String, Object>): List<Split>
+    + {abstract} validate(Expense, List<User>, Map<String, Object>): boolean
+  }
+  
+  class EqualSplitStrategy <<Strategy>> STRATEGY_COLOR {
+    + calculateSplits(Expense, List<User>, Map<String, Object>): List<Split>
+    + validate(Expense, List<User>, Map<String, Object>): boolean
+  }
+  
+  class ExactSplitStrategy <<Strategy>> STRATEGY_COLOR {
+    + calculateSplits(Expense, List<User>, Map<String, Object>): List<Split>
+    + validate(Expense, List<User>, Map<String, Object>): boolean
+  }
+  
+  class PercentageSplitStrategy <<Strategy>> STRATEGY_COLOR {
+    + calculateSplits(Expense, List<User>, Map<String, Object>): List<Split>
+    + validate(Expense, List<User>, Map<String, Object>): boolean
+  }
+}
+
+'================================
+' SERVICE LAYER
+'================================
+
+package "Service Layer" {
+  
+  class ExpenseService <<Service>> SERVICE_COLOR {
+    - expenses: List<Expense>
+    - balanceManager: BalanceManager
+    - strategyMap: Map<SplitType, ExpenseSplitStrategy>
+    --
+    + ExpenseService(BalanceManager)
+    + createExpense(String, Double, User, List<User>, SplitType, Group): Expense
+    + createExpenseWithExactAmounts(String, Double, User, Map<User, Double>, Group): Expense
+    + createExpenseWithPercentages(String, Double, User, Map<User, Double>, Group): Expense
+    + getExpenseById(String): Expense
+    + getExpensesByUser(User): List<Expense>
+    + getExpensesByGroup(Group): List<Expense>
+    + getAllExpenses(): List<Expense>
+    - registerStrategy(SplitType, ExpenseSplitStrategy): void
+    - generateExpenseId(): String
+  }
+  
+  class BalanceManager <<Service>> SERVICE_COLOR {
+    - balances: Map<String, Map<String, Double>>
+    --
+    + BalanceManager()
+    + updateBalances(Expense): void
+    + getUserBalances(User): Map<User, Double>
+    + getAllBalances(): List<Balance>
+    + getBalance(User, User): Double
+    + recordPayment(User, User, Double): void
+    + simplifyDebts(): List<Balance>
+    - getBalanceKey(User, User): String
+    - updateBalance(User, User, Double): void
+  }
+  
+  class GroupService <<Service>> SERVICE_COLOR {
+    - groups: List<Group>
+    - expenseService: ExpenseService
+    --
+    + GroupService(ExpenseService)
+    + createGroup(String, List<User>): Group
+    + getGroupById(String): Group
+    + getAllGroups(): List<Group>
+    + addMemberToGroup(String, User): void
+    + removeMemberFromGroup(String, User): void
+    + addExpenseToGroup(String, Expense): void
+    + getGroupBalances(String): List<Balance>
+    - generateGroupId(): String
+  }
+  
+  class UserService <<Service>> SERVICE_COLOR {
+    - users: Map<String, User>
+    - emailIndex: Map<String, User>
+    --
+    + UserService()
+    + createUser(String, String, String): User
+    + getUserById(String): User
+    + getUserByEmail(String): User
+    + getAllUsers(): List<User>
+    - generateUserId(): String
+  }
+}
+
+'================================
+' RELATIONSHIPS
+'================================
+
+' Entity Relationships
+Expense "1" *-- "many" Split : contains >
+Split "many" --> "1" User : references >
+Expense "many" --> "1" User : paidBy >
+Expense "many" --> "1" SplitType : uses >
+Expense "many" --> "0..1" Group : belongsTo >
+Group "1" o-- "many" User : contains >
+Group "1" o-- "many" Expense : contains >
+Balance "many" --> "1" User : fromUser >
+Balance "many" --> "1" User : toUser >
+
+' Strategy Relationships
+ExpenseSplitStrategy <|.. EqualSplitStrategy : implements
+ExpenseSplitStrategy <|.. ExactSplitStrategy : implements
+ExpenseSplitStrategy <|.. PercentageSplitStrategy : implements
+
+' Service Dependencies
+ExpenseService --> ExpenseSplitStrategy : depends on >
+ExpenseService --> BalanceManager : uses >
+ExpenseService ..> Expense : creates >
+ExpenseService ..> Split : creates >
+GroupService --> ExpenseService : uses >
+GroupService ..> Group : creates >
+UserService ..> User : creates >
+BalanceManager ..> Balance : creates >
+BalanceManager --> Expense : reads >
+
+' Notes
+note right of ExpenseSplitStrategy
+  **Strategy Pattern**
+  Allows adding new split
+  types without modifying
+  existing code (OCP)
+end note
+
+note right of ExpenseService
+  **Service Layer**
+  Coordinates business logic
+  Depends on abstractions (DIP)
+  Single responsibility (SRP)
+end note
+
+note bottom of Expense
+  **Immutable after creation**
+  Ensures data consistency
+  Thread-safe
+end note
+
+note left of Group
+  **Composition over Inheritance**
+  Group HAS-A list of Users
+  Not IS-A collection
+end note
+
+@enduml
