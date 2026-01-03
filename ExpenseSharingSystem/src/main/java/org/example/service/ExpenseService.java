@@ -30,13 +30,21 @@ public class ExpenseService {
         registerStrategy(SplitType.PERCENTAGE, new PercentageSplitStrategy());
     }
 
+    public Expense editExpense(String id, String description, Double amount, User paidBy,
+                               List<User> participants, SplitType splitType,
+                               Map<String, Object> metadata, Group group) {
+        Expense existingExpense = getExpenseById(id);
+
+
+    }
+
     /**
      * Core method to create an expense using Strategy Pattern.
      * This method delegates split calculation to the appropriate strategy.
      * Follows OCP - can handle any split type without modification.
      */
     public Expense createExpense(String description, Double amount, User paidBy,
-                                  List<User> participants, SplitType splitType, 
+                                  List<User> participants, SplitType splitType,
                                   Map<String, Object> metadata, Group group) {
         ExpenseSplitStrategy strategy = strategyMap.get(splitType);
         if (strategy == null) {
@@ -73,7 +81,7 @@ public class ExpenseService {
      */
     public Expense createEqualExpense(String description, Double amount, User paidBy,
                                       List<User> participants, Group group) {
-        return createExpense(description, amount, paidBy, participants, 
+        return createExpense(description, amount, paidBy, participants,
                            SplitType.EQUAL, new HashMap<>(), group);
     }
 
@@ -85,8 +93,8 @@ public class ExpenseService {
         List<User> participants = new ArrayList<>(exactAmounts.keySet());
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("exactAmounts", exactAmounts);
-        
-        return createExpense(description, amount, paidBy, participants, 
+
+        return createExpense(description, amount, paidBy, participants,
                            SplitType.EXACT, metadata, group);
     }
 
@@ -98,8 +106,8 @@ public class ExpenseService {
         List<User> participants = new ArrayList<>(percentages.keySet());
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("percentages", percentages);
-        
-        return createExpense(description, amount, paidBy, participants, 
+
+        return createExpense(description, amount, paidBy, participants,
                            SplitType.PERCENTAGE, metadata, group);
     }
 
